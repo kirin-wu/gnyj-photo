@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.photo.gnyjphoto.test.mybatis.StudentMapper">
+    <!-- 设定返回的结果对应 -->
+    <resultMap type="com.photo.gnyjphoto.test.mybatis.Student" id="student">
+        <!-- 设定表字段与实体字段对应，column 为 SQL 查询结果对应的列名，property 对应实体的属性 -->
+        <result column="id" property="id"/>
+        <result column="name" property="name"/>
+        <!-- 设定某些特定表字段与某些实体类对应，通过 class_ 前缀对应到 studentClass 实体 -->
+        <association property="studentClass" columnPrefix="class_" autoMapping="true"/>
+        <!-- 设定某些特定表字段与某些实体类对应，通过 school_ 前缀对应到 studentSchool 实体 -->
+        <association property="studentSchool" columnPrefix="school_" autoMapping="true">
+            <!-- 设定数据库字段与 studentSchool 实体对应，例如表字段 no（需要去掉前缀）对应到实体 sno -->
+            <result property="sno" column="no" />
+            <result property="sname" column="name" />
+        </association>
+        <!-- 配置一个学生对应一个班主任关系 -->
+        <association property="teacher" columnPrefix="teacher_" autoMapping="true">
+            <!-- 设定数据库字段与 studentSchool 实体对应，例如表字段 no（需要去掉前缀）对应到实体 sno -->
+            <result property="id" column="id" />
+            <result property="name" column="name" />
+        </association>
+        <!--配置一个学生对多个书包的关系-->
+        <collection property="schoolBags" javaType="java.util.List" ofType="com.photo.gnyjphoto.test.mybatis.SchoolBag">
+            <id property="id" column="school_bag_id"/>
+            <result property="name" column="shool_bag_name"/>
+        </collection>
+    </resultMap>
+
+    <!-- 抽出来通用的查询语句 -->
+    <sql id="studentDetail">
+        select t.id,
+               t.name,
+               t.class_no,
+               t.class_name,
+               t.school_no,
+               t.school_name,
+               s.id AS school_bag_id,
+               s.name AS shool_bag_name,
+               e.id AS teacher_id,
+               e.name AS teacher_name
+        from student t
+                 left join school_bag s on t.id = s.student_id
+                 left join teacher e on t.id = e.student_id
+    </sql>
+    <!-- 与 java 中的 Mapper 类的 getStudent 方法对应，通过 id 获取学生信息 SQL -->
+    <select id="getStudent" parameterType="Long" resultMap="student">
+        <!-- 引入上面的通用查询 sql -->
+        <include refid="studentDetail"></include>
+        <!-- 具体查询条件 -->
+        where t.id = #{id}
+    </select>
+    <!-- 获取学生信息列表 SQL -->
+    <select id="getStudents" resultMap="student">
+        <!-- 引入上面的通用查询 sql -->
+        <include refid="studentDetail"></include>
+    </select>
+    <!-- 新增学生 SQL -->
+    <insert id="saveStudent">
+        insert into student
+        (id,
+         name,
+         class_no,
+         class_name,
+         school_no,
+         school_name)
+        values
+            (#{student.id},
+             #{student.name},
+             #{student.studentClass.no},
+             #{student.studentClass.name},
+             #{student.studentSchool.sno},
+             #{student.studentSchool.sname})
+    </insert>
+    <!-- 更新学生 sql -->
+    <update id="updateStudent">
+        update student
+        set name = #{student.name},
+            class_no= #{student.studentClass.no},
+            class_name= #{student.studentClass.name},
+            school_no= #{student.studentSchool.sno},
+            school_name= #{student.studentSchool.sname}
+        where id = #{student.id}
+    </update>
+    <!-- 删除学生 sql -->
+    <delete id="deleteStudent">
+        delete from student where id = #{id}
+    </delete>
+
+</mapper>
